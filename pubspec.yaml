@@ -1,0 +1,110 @@
+name: im_client
+description: "即时通讯客户端 - 支持Web、Android、iOS多平台"
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.7.2
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_localizations:
+    sdk: flutter
+
+  # UI组件
+  cupertino_icons: ^1.0.8
+
+  # 状态管理
+  provider: ^6.1.1
+
+  # 网络请求
+  dio: ^5.4.0
+
+  # WebSocket
+  web_socket_channel: ^3.0.3
+
+  # 本地存储
+  shared_preferences: ^2.2.2
+  sqflite: ^2.3.0
+  path: ^1.8.3
+  hive: ^2.2.3
+  hive_flutter: ^1.1.0
+
+  # 图片相关
+  cached_network_image: ^3.3.1
+  flutter_cache_manager: ^3.3.1
+  image_picker: ^1.0.7
+  image_gallery_saver_plus: ^4.0.1
+  photo_view: ^0.15.0
+  image_cropper: ^11.0.0
+
+  # Markdown渲染
+  flutter_markdown: ^0.7.7+1
+
+  # 文件选择
+  file_picker: ^10.3.10
+
+  # 位置服务 (仅移动端)
+  geolocator: ^14.0.2
+
+  # 权限管理
+  permission_handler: ^12.0.1
+
+  # 音视频通话 (WebRTC)
+  flutter_webrtc: ^1.2.1
+
+  # LiveKit SFU (连麦)
+  livekit_client: ^2.3.6
+
+  # 推送通知
+  firebase_core: ^4.4.0
+  firebase_messaging: ^16.1.1
+  flutter_local_notifications: ^20.0.0
+
+  # 二维码生成与扫描
+  qr_flutter: ^4.1.0
+  mobile_scanner: ^7.1.4
+
+  # 其他工具
+  intl: 0.20.2
+  uuid: ^4.3.3
+  flutter_secure_storage: ^10.0.0
+  connectivity_plus: ^7.0.0
+  device_info_plus: ^12.3.0
+  package_info_plus: ^9.0.0
+
+  # 音频播放/录制
+  just_audio: ^0.10.5
+  record: ^6.2.0
+  path_provider: ^2.1.2
+
+  # 视频播放
+  video_player: ^2.8.2
+  chewie: ^1.7.4
+  video_thumbnail: ^0.5.6
+
+  # Lottie动画
+  lottie: ^3.1.0
+
+  # 地图
+  flutter_map: ^8.2.2
+  latlong2: ^0.9.0
+  url_launcher: ^6.2.4
+
+  # 拼音转换（用于通讯录排序）
+  lpinyin: ^2.0.3
+
+  # 加密（传输层 AES-256-GCM）
+  pointycastle: 4.0.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+
+flutter:
+  uses-material-design: true
+
+  assets:
+    - assets/sounds/
