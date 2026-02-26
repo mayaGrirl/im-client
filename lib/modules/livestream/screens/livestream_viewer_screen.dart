@@ -5261,7 +5261,7 @@ class _LivestreamViewerScreenState extends State<LivestreamViewerScreen> {
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
               //const SnackBar(content: Text('Camera/Microphone permission denied. Please enable in settings.')),
-              const SnackBar(content: Text(AppLocalizations.of(context)?.camera_permission_denied_settings ?? 'Camera/Microphone permission denied. Please enable in settings.')),
+              SnackBar(content: Text('Camera/Microphone permission denied. Please enable in settings.')),
             );
           }
           return;
@@ -5315,7 +5315,7 @@ class _LivestreamViewerScreenState extends State<LivestreamViewerScreen> {
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
               //const SnackBar(content: Text('Camera/Microphone permission denied. Please enable in settings.')),
-              const SnackBar(content: Text(AppLocalizations.of(context)?.camera_permission_denied_settings ?? 'Camera/Microphone permission denied. Please enable in settings.')),
+              SnackBar(content: Text('Camera/Microphone permission denied. Please enable in settings.')),
             );
           }
           return;
