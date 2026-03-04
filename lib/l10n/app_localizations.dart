@@ -1007,6 +1007,7 @@ class AppLocalizations {
   String get goBack => translate('go_back');
   String get cohostEstablished => translate('cohost_established');
   String get cohostEnded => translate('cohost_ended');
+  String get cohostMixerFailed => translate('cohost_mixer_failed');
   String get cohostRejected => translate('cohost_rejected');
   String cohostRequest(String name) => translate('cohost_request').replaceAll('{name}', name);
   String get cohostTapToExitEnlarge => translate('cohost_tap_to_exit_enlarge');

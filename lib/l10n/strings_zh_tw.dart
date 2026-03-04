@@ -2155,6 +2155,7 @@ const Map<String, String> zhTWStrings = {
   'sv_comments_title': '評論',
   'sv_reply': '回覆',
   'sv_write_comment': '寫評論...',
+  'sv_comment_success': '評論成功',
   'sv_send': '發送',
   'sv_no_comments': '暫無評論',
   'sv_retry': '點擊重試',

@@ -111,6 +111,23 @@ class CoHostService extends ChangeNotifier {
     _setupRoomEvents();
 
     try {
+      // 配置 ICE 服务器（包含 TURN 服务器）
+      final iceServers = <RTCIceServer>[
+        // Google 公共 STUN 服务器
+        RTCIceServer(urls: ['stun:stun.l.google.com:19302']),
+        // 我们的 TURN 服务器
+        RTCIceServer(
+          urls: [
+            'turn:8.208.82.15:3478?transport=udp',
+            'turn:8.208.82.15:3478?transport=tcp',
+          ],
+          username: 'livekit',
+          credential: 'LiveKit2024!Secure',
+        ),
+      ];
+      
+      debugPrint('CoHost: Configuring ICE servers: ${iceServers.length} servers');
+      
       await _room!.connect(
         url,
         token,
@@ -132,6 +149,14 @@ class CoHostService extends ChangeNotifier {
             echoCancellation: true,
           ),
         ),
+        connectOptions: ConnectOptions(
+          autoSubscribe: true,
+          // 配置 ICE 服务器
+          rtcConfiguration: RTCConfiguration(
+            iceServers: iceServers,
+            iceTransportPolicy: RTCIceTransportPolicy.all,
+          ),
+        ),
       );
 
       debugPrint('CoHost: Room connected successfully');
@@ -142,6 +167,9 @@ class CoHostService extends ChangeNotifier {
         debugPrint('CoHost: Microphone enabled successfully');
       } catch (e) {
         debugPrint('CoHost: failed to enable microphone: $e');
+        // 麦克风失败是严重问题，通知 UI
+        _localMicEnabled = false;
+        notifyListeners();
       }
 
       // 尝试开启摄像头（可选，没有摄像头时不影响连麦）
@@ -156,14 +184,33 @@ class CoHostService extends ChangeNotifier {
         for (final pub in videoPubs) {
           debugPrint('CoHost: Video track - sid: ${pub.sid}, muted: ${pub.muted}, track: ${pub.track != null}');
         }
+        
+        // 如果没有视频轨道，标记摄像头未启用
+        if (videoPubs.isEmpty) {
+          _localCameraEnabled = false;
+          debugPrint('CoHost: No video tracks published, camera disabled');
+        }
       } catch (e) {
         debugPrint('CoHost: failed to enable camera: $e');
         _localCameraEnabled = false;
       }
 
+      // 通知 UI 更新（无论摄像头是否成功）
       notifyListeners();
     } catch (e) {
       debugPrint('CoHost connectToRoom error: $e');
+      
+      // 检查是否是超时错误
+      final errorMsg = e.toString().toLowerCase();
+      if (errorMsg.contains('timeout') || errorMsg.contains('timed out')) {
+        debugPrint('CoHost: Connection timeout - possible network or ICE server issue');
+        debugPrint('CoHost: LiveKit URL: $url');
+        debugPrint('CoHost: Please check:');
+        debugPrint('  1. Network connectivity');
+        debugPrint('  2. TURN server configuration');
+        debugPrint('  3. Firewall settings');
+      }
+      
       await _disconnectRoom();
       // _isCoHosting 保持 true — 信令层连麦已建立，只是 LiveKit 不可用
       notifyListeners();
@@ -214,31 +261,46 @@ class CoHostService extends ChangeNotifier {
   Future<void> _handleRoomDisconnected() async {
     if (_isDisposed) return;
     
-    debugPrint('CoHost: attempting to reconnect...');
+    debugPrint('CoHost: room disconnected, attempting to reconnect...');
     
-    // 等待 2 秒后尝试重连
-    await Future.delayed(const Duration(seconds: 2));
+    // 防止无限重连：最多尝试 3 次
+    int retryCount = 0;
+    const maxRetries = 3;
     
-    if (_isDisposed || !_isCoHosting) return;
-    
-    // 尝试通过 API 获取新的 token 重连
-    try {
-      final res = await _api.getCoHostToken(livestreamId);
-      if (res.isSuccess) {
-        final data = res.data as Map<String, dynamic>? ?? {};
-        final token = data['token'] as String? ?? '';
-        final url = data['livekit_url'] as String? ?? '';
-        if (token.isNotEmpty && url.isNotEmpty) {
-          debugPrint('CoHost: reconnecting with new token...');
-          await connectToRoom(url, token);
-          return;
+    while (retryCount < maxRetries && !_isDisposed && _isCoHosting) {
+      retryCount++;
+      debugPrint('CoHost: reconnect attempt $retryCount/$maxRetries');
+      
+      // 等待递增时间后重试（2s, 4s, 6s）
+      await Future.delayed(Duration(seconds: 2 * retryCount));
+      
+      if (_isDisposed || !_isCoHosting) return;
+      
+      // 尝试通过 API 获取新的 token 重连
+      try {
+        final res = await _api.getCoHostToken(livestreamId);
+        if (res.isSuccess) {
+          final data = res.data as Map<String, dynamic>? ?? {};
+          final token = data['token'] as String? ?? '';
+          final url = data['livekit_url'] as String? ?? '';
+          if (token.isNotEmpty && url.isNotEmpty) {
+            debugPrint('CoHost: reconnecting with new token (attempt $retryCount)...');
+            await connectToRoom(url, token);
+            
+            // 检查连接是否成功
+            if (_room != null && _room!.connectionState == ConnectionState.connected) {
+              debugPrint('CoHost: reconnect successful');
+              return;
+            }
+          }
         }
+      } catch (e) {
+        debugPrint('CoHost: reconnect attempt $retryCount failed: $e');
       }
-    } catch (e) {
-      debugPrint('CoHost: reconnect failed: $e');
     }
     
-    // 重连失败，标记连麦已结束
+    // 所有重连尝试失败，标记连麦已结束
+    debugPrint('CoHost: all reconnect attempts failed, ending cohost session');
     _isCoHosting = false;
     notifyListeners();
   }

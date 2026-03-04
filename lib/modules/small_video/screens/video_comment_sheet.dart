@@ -8,6 +8,7 @@ import 'package:im_client/l10n/app_localizations.dart';
 import 'package:im_client/modules/small_video/models/small_video.dart';
 import 'package:provider/provider.dart';
 import 'package:im_client/modules/small_video/providers/small_video_provider.dart';
+import 'package:im_client/providers/auth_provider.dart';
 
 class VideoCommentSheet extends StatefulWidget {
   final int videoId;
@@ -28,6 +29,7 @@ class _VideoCommentSheetState extends State<VideoCommentSheet> {
   final TextEditingController _inputController = TextEditingController();
 
   List<SmallVideoComment> _comments = [];
+  final List<int> _recentCommentIds = []; // 记录最近发布的评论ID
   bool _isLoading = false;
   bool _hasMore = true;
   int _page = 1;
@@ -143,13 +145,80 @@ class _VideoCommentSheetState extends State<VideoCommentSheet> {
 
       if (response.success) {
         _inputController.clear();
+        
+        // 获取当前用户信息
+        final currentUser = context.read<AuthProvider>().user;
+        
+        // 创建新评论对象
+        final newComment = SmallVideoComment(
+          id: response.data?['id'] ?? -DateTime.now().millisecondsSinceEpoch,
+          smallVideoId: widget.videoId,
+          userId: currentUser?.id ?? 0,
+          content: content,
+          likeCount: 0,
+          replyCount: 0,
+          createdAt: DateTime.now(),
+          parentId: _replyToCommentId ?? 0,
+          replyToUid: _replyToUserId ?? 0,
+          user: currentUser != null ? SmallVideoUser(
+            id: currentUser.id,
+            nickname: currentUser.nickname,
+            avatar: currentUser.avatar,
+          ) : null,
+          replyTo: _replyToUserId != null && _replyToName != null ? SmallVideoUser(
+            id: _replyToUserId!,
+            nickname: _replyToName!,
+            avatar: '',
+          ) : null,
+          replies: [],
+          isLiked: false,
+        );
+        
+        // 如果是回复评论，更新父评论的回复列表
+        if (_replyToCommentId != null) {
+          final parentIndex = _comments.indexWhere((c) => c.id == _replyToCommentId);
+          if (parentIndex != -1) {
+            final parent = _comments[parentIndex];
+            setState(() {
+              _comments[parentIndex] = parent.copyWith(
+                replies: [newComment, ...parent.replies],
+                replyCount: parent.replyCount + 1,
+              );
+            });
+          }
+        } else {
+          // 主评论：插入到列表顶部（用户自己的评论始终显示在第一条）
+          setState(() {
+            _comments.insert(0, newComment);
+            // 记录这是用户刚发布的评论
+            _recentCommentIds.add(newComment.id);
+          });
+          
+          // 5秒后滚动到顶部，确保用户看到自己的评论
+          Future.delayed(const Duration(milliseconds: 300), () {
+            if (mounted) {
+              // 触发列表重建，确保新评论可见
+              setState(() {});
+            }
+          });
+        }
+        
         _cancelReply();
+        
         // 增加评论计数
         if (mounted) context.read<SmallVideoProvider>().incrementCommentCount(widget.videoId);
         _totalCount++;
-        // 重新加载评论
-        _page = 1;
-        _loadComments();
+        
+        // 显示成功提示
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(AppLocalizations.of(context)!.translate('sv_comment_success')),
+              duration: const Duration(seconds: 1),
+              backgroundColor: Colors.green,
+            ),
+          );
+        }
       } else if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(response.message ?? '评论发送失败'), duration: const Duration(seconds: 2)),

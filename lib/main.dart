@@ -370,12 +370,22 @@ class _AuthWrapperState extends State<AuthWrapper> {
                   showDialog(
                     context: context,
                     barrierDismissible: false,
-                    builder: (_) => AlertDialog(
+                    builder: (dialogContext) => AlertDialog(
                       title: Text(l10n?.forcedOfflineTitle ?? '下线通知'),
                       content: Text(message),
                       actions: [
                         TextButton(
-                          onPressed: () => Navigator.of(context).pop(),
+                          onPressed: () {
+                            // 1. 关闭对话框
+                            Navigator.of(dialogContext).pop();
+                            
+                            // 2. 清除所有页面栈，跳转到登录页
+                            // 使用 pushNamedAndRemoveUntil 确保清除所有历史页面
+                            Navigator.of(context).pushNamedAndRemoveUntil(
+                              Routes.login,
+                              (route) => false, // 移除所有路由
+                            );
+                          },
                           child: Text(l10n?.confirm ?? '确定'),
                         ),
                       ],

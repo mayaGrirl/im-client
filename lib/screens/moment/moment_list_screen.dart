@@ -676,8 +676,18 @@ class _MomentListScreenState extends State<MomentListScreen> {
       UploadResult? result;
 
       if (kIsWeb) {
-        final bytes = await File(croppedPath).readAsBytes();
-        result = await uploadApi.uploadImage(bytes.toList(), filename: image.name);
+        // Web 平台：裁剪后的路径是 blob URL，需要通过 XFile 读取
+        try {
+          // 尝试从裁剪路径创建 XFile
+          final croppedFile = XFile(croppedPath);
+          final bytes = await croppedFile.readAsBytes();
+          result = await uploadApi.uploadImage(bytes, filename: image.name);
+        } catch (e) {
+          debugPrint('Web crop file read error: $e');
+          // 如果失败，尝试使用原始图片
+          final bytes = await image.readAsBytes();
+          result = await uploadApi.uploadImage(bytes, filename: image.name);
+        }
       } else {
         result = await uploadApi.uploadImage(croppedPath, filename: image.name);
       }
@@ -711,6 +721,7 @@ class _MomentListScreenState extends State<MomentListScreen> {
         }
       }
     } catch (e) {
+      debugPrint('Upload cover error: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('${l10n.translate('error')}: $e')),

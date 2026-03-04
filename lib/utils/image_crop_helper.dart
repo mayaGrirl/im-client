@@ -93,7 +93,6 @@ class ImageCropHelper {
         ),
         WebUiSettings(
           context: context,
-          size: const CropperSize(width: 400, height: 400),
         ),
       ],
     );
